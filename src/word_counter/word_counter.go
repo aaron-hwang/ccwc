@@ -2,8 +2,10 @@ package word_counter
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"log"
+	"os"
 )
 
 type WordCounter struct {
@@ -11,32 +13,57 @@ type WordCounter struct {
 	LineCount int
 	WordCount int
 	reader    bufio.Reader
+	scanner   bufio.Scanner
 }
 
-func NewWordCounter(reader io.Reader) *WordCounter {
+func NewWordCounter(file *os.File) *WordCounter {
 	// Go will init the non defined values to their nil (0) value.
-	return &WordCounter{reader: *bufio.NewReader(reader)}
+	return &WordCounter{reader: *bufio.NewReader(file), scanner: *bufio.NewScanner(file)}
 }
 
-func (wc *WordCounter) ReadBytes() int {
+// Counts the number of bytes in the counter's current reader.
+func (wc *WordCounter) ReadBytes() (int, error) {
+	res := 0
 	for {
-		temp := make([]byte, 5)
+		temp := make([]byte, 1)
 		n, err := wc.reader.Read(temp)
-		wc.ByteCount += n
+		res += n
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
 			log.Println("Could not read file")
+			return 0, fmt.Errorf("could not read file")
 		}
 	}
-	return wc.ByteCount
+	wc.ByteCount = res
+	return wc.ByteCount, nil
 }
 
-func ReadLines() {
-
+func (wc *WordCounter) ReadLineCount() (int, error) {
+	lines := 0
+	for {
+		_, _, err := wc.reader.ReadLine()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Println("Error reading lines of file.")
+			return 0, fmt.Errorf("error reading lines of file")
+		}
+		lines += 1
+	}
+	wc.LineCount = lines
+	return lines, nil
 }
 
-func ReadWordCount() {
+func (wc *WordCounter) ReadWordCount() (int, error) {
+	words := 0
+	wc.scanner.Split(bufio.ScanWords)
+	for wc.scanner.Scan() {
+		words += 1
+	}
 
+	wc.WordCount = words
+	return words, nil
 }
