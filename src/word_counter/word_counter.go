@@ -12,17 +12,25 @@ type WordCounter struct {
 	ByteCount int
 	LineCount int
 	WordCount int
-	reader    bufio.Reader
-	scanner   bufio.Scanner
+	curr      *os.File
+	reader    *bufio.Reader
+	scanner   *bufio.Scanner
 }
 
 func NewWordCounter(file *os.File) *WordCounter {
 	// Go will init the non defined values to their nil (0) value.
-	return &WordCounter{reader: *bufio.NewReader(file), scanner: *bufio.NewScanner(file)}
+	return &WordCounter{reader: bufio.NewReader(file), scanner: bufio.NewScanner(file), curr: file}
+}
+
+func (wc *WordCounter) reInitCounter() {
+	wc.curr.Seek(0, io.SeekStart)
+	wc.reader = bufio.NewReader(wc.curr)
+	wc.scanner = bufio.NewScanner(wc.curr)
 }
 
 // Counts the number of bytes in the counter's current reader.
 func (wc *WordCounter) ReadBytes() (int, error) {
+	wc.reInitCounter()
 	res := 0
 	for {
 		temp := make([]byte, 1)
@@ -41,6 +49,7 @@ func (wc *WordCounter) ReadBytes() (int, error) {
 }
 
 func (wc *WordCounter) ReadLineCount() (int, error) {
+	wc.reInitCounter()
 	lines := 0
 	for {
 		_, _, err := wc.reader.ReadLine()
@@ -58,6 +67,7 @@ func (wc *WordCounter) ReadLineCount() (int, error) {
 }
 
 func (wc *WordCounter) ReadWordCount() (int, error) {
+	wc.reInitCounter()
 	words := 0
 	wc.scanner.Split(bufio.ScanWords)
 	for wc.scanner.Scan() {
@@ -66,4 +76,11 @@ func (wc *WordCounter) ReadWordCount() (int, error) {
 
 	wc.WordCount = words
 	return words, nil
+}
+
+// TODO: Change to do in one pass.
+func (wc *WordCounter) ReadAll() {
+	wc.ReadBytes()
+	wc.ReadLineCount()
+	wc.ReadWordCount()
 }

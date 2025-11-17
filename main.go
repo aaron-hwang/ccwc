@@ -40,5 +40,8 @@ func main() {
 		wc.ReadWordCount()
 		println(wc.WordCount)
 	}
-
+	if !*shouldCountBytes && !*shouldCountLines && !*shouldCountWords {
+		wc.ReadAll()
+		fmt.Printf("%d %d %d %s", wc.ByteCount, wc.LineCount, wc.WordCount, toRead.Name())
+	}
 }
